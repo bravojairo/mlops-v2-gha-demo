@@ -16,8 +16,35 @@ jobs:
     with:
       file_name: config-infra-prod.yml
 
-  test-terraform-state-deployment:
+  check-terraform-state-access:
     needs: get-config
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      - name: Verify state storage access
+        env:
+          STATE_ACCOUNT: ${{ needs.get-config.outputs.terraform_st_storage_account }}
+          STATE_RESOURCE_GROUP: ${{ needs.get-config.outputs.terraform_st_resource_group }}
+          STATE_CONTAINER: ${{ needs.get-config.outputs.terraform_st_container_name }}
+        run: |
+          if [[ $(az group exists --name "$STATE_RESOURCE_GROUP") == false ]] ||
+             [[ $(az storage account list --resource-group "$STATE_RESOURCE_GROUP" --query "[?name=='$STATE_ACCOUNT'] | length(@)" -o tsv) == 0 ]]; then
+            exit 0
+          fi
+          if ! az storage blob list --account-name "$STATE_ACCOUNT" --container-name "$STATE_CONTAINER" --auth-mode login --num-results 1 --output none; then
+            echo "::error::The deployment identity cannot list Terraform state blobs. An Azure administrator must grant it Storage Blob Data Contributor on the state storage account; see README.md."
+            exit 1
+          fi
+
+  test-terraform-state-deployment:
+    needs: [get-config, check-terraform-state-access]
     uses: Azure/mlops-templates/.github/workflows/tf-gha-install-terraform.yml@main
     with:
       TFAction: 'apply'
