@@ -1,26 +1,33 @@
 name: tf-gha-deploy-infra.yml
- 
-on: 
+
+on:
   workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
 env:
-    config_env: 'none'
+  config_env: 'none'
+
 jobs:
   get-config:
-      uses: Azure/mlops-templates/.github/workflows/read-yaml.yml@main
-      with:
-        file_name: config-infra-prod.yml
+    uses: Azure/mlops-templates/.github/workflows/read-yaml.yml@main
+    with:
+      file_name: config-infra-prod.yml
+
   test-terraform-state-deployment:
     needs: get-config
     uses: Azure/mlops-templates/.github/workflows/tf-gha-install-terraform.yml@main
     with:
       TFAction: 'apply'
-      dply_environment: ${{ needs.set-env-branch.outputs.config-file }} 
+      dply_environment: ${{ needs.get-config.outputs.environment }}
       location: ${{ needs.get-config.outputs.location }}
       namespace: ${{ needs.get-config.outputs.namespace }}
       postfix: ${{ needs.get-config.outputs.postfix }}
       environment: ${{ needs.get-config.outputs.environment }}
-      enable_aml_computecluster: ${{ needs.get-config.outputs.enable_aml_computecluster == true }} ## TBD review the evaluation of boolean
-      enable_monitoring: ${{ needs.get-config.outputs.enable_monitoring == true  }} ## TBD review the evaluation of boolean
+      enable_aml_computecluster: ${{ needs.get-config.outputs.enable_aml_computecluster == true }}
+      enable_monitoring: ${{ needs.get-config.outputs.enable_monitoring == true }}
       terraform_version: ${{ needs.get-config.outputs.terraform_version }}
       terraform_workingdir: ${{ needs.get-config.outputs.terraform_workingdir }}
       terraform_st_location: ${{ needs.get-config.outputs.terraform_st_location }}
@@ -29,15 +36,15 @@ jobs:
       terraform_st_container_name: ${{ needs.get-config.outputs.terraform_st_container_name }}
       terraform_st_key: ${{ needs.get-config.outputs.terraform_st_key }}
       terraform_plan_location: ${{ needs.get-config.outputs.location }}
-      terraform_plan_vnet: "TBD" # TBD
+      terraform_plan_vnet: 'TBD'
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       AZURE_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
   deploy-azureml-resources:
     runs-on: ubuntu-latest
     steps:
-    - id: deploy-aml-workspace
-      name: deploy-aml-workspace
-      run: echo "OK"
-
+      - id: deploy-aml-workspace
+        name: deploy-aml-workspace
+        run: echo "OK"
