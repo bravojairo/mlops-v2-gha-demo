@@ -26,6 +26,12 @@ variable "enable_monitoring" {
   description = "Variable to enable or disable Monitoring"
 }
 
+variable "github_actions_service_principal_id" {
+  type        = string
+  description = "Object ID of the GitHub Actions service principal"
+}
+
 variable "client_secret" {
   description = "Service Principal Secret"
+  default     = ""
 }
