@@ -14,9 +14,13 @@ jobs:
 
   test-terraform-state-deployment:
     needs: get-config
+    permissions:
+      contents: read
+      id-token: write
     uses: Azure/mlops-templates/.github/workflows/tf-gha-install-terraform.yml@main
     with:
       TFAction: apply
+      dply_environment: ${{ needs.get-config.outputs.environment }}
       location: ${{ needs.get-config.outputs.location }}
       namespace: ${{ needs.get-config.outputs.namespace }}
       postfix: ${{ needs.get-config.outputs.postfix }}
