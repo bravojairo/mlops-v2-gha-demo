@@ -2,9 +2,11 @@ name: deploy-model-training-pipeline
 
 on: 
   workflow_dispatch:
+  
 permissions:
   contents: read
   id-token: write
+
 jobs:
   get-config:
       uses: Azure/mlops-templates/.github/workflows/read-yaml.yml@main
