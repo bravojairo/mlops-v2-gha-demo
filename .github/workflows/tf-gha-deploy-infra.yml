@@ -41,6 +41,7 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       AZURE_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      client_secret: ${{ secrets.AZURE_CREDENTIALS }}
 
   deploy-azureml-resources:
     runs-on: ubuntu-latest
