@@ -33,14 +33,10 @@ jobs:
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
   deploy-azureml-resources:
     runs-on: ubuntu-latest
     steps:
     - id: deploy-aml-workspace
       name: deploy-aml-workspace
       run: echo "OK"
-
-
-      
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-
