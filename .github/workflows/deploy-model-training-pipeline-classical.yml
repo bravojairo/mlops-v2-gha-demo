@@ -24,6 +24,7 @@ jobs:
           creds: ${{secrets.AZURE_CREDENTIALS}}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
           
   register-dataset:
     needs: get-config
@@ -37,6 +38,7 @@ jobs:
       creds: ${{secrets.AZURE_CREDENTIALS}}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
       
   create-compute:
       needs: [get-config,register-environment,register-dataset]
@@ -53,6 +55,7 @@ jobs:
           creds: ${{secrets.AZURE_CREDENTIALS}}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
       
   run-pipeline:
       needs: [get-config,register-environment,create-compute,register-dataset]
