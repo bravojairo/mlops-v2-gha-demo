@@ -56,7 +56,7 @@ jobs:
           az extension add -n ml -y
           if ! az ml compute show --name cpu-cluster --resource-group "$RESOURCE_GROUP" --workspace-name "$WORKSPACE_NAME" --output none 2>/dev/null; then
             az ml compute create --name cpu-cluster --type AmlCompute \
-              --tier low_priority --size Standard_DS11_v2 \
+              --tier Dedicated --size Standard_DS11_v2 \
               --min-instances 0 --max-instances 2 \
               --resource-group "$RESOURCE_GROUP" --workspace-name "$WORKSPACE_NAME"
           fi
