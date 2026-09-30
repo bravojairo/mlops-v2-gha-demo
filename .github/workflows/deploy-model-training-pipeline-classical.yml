@@ -17,6 +17,8 @@ jobs:
         conda_file: data-science/environment/train-conda.yml
       secrets:
           creds: ${{secrets.AZURE_CREDENTIALS}}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           
   register-dataset:
     needs: get-config
@@ -28,6 +30,8 @@ jobs:
       data_file: mlops/azureml/train/data.yml
     secrets:
       creds: ${{secrets.AZURE_CREDENTIALS}}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       
   create-compute:
       needs: [get-config,register-environment,register-dataset]
@@ -42,6 +46,8 @@ jobs:
         workspace_name: ${{ needs.get-config.outputs.aml_workspace }}     
       secrets:
           creds: ${{secrets.AZURE_CREDENTIALS}}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       
   run-pipeline:
       needs: [get-config,register-environment,create-compute,register-dataset]
