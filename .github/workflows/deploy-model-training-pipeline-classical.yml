@@ -78,13 +78,85 @@ jobs:
       
   run-pipeline:
       needs: [get-config,register-environment,create-compute,register-dataset]
-      uses: Azure/mlops-templates/.github/workflows/run-pipeline.yml@main
-      with:
-        resource_group: ${{ needs.get-config.outputs.resource_group }}
-        workspace_name: ${{ needs.get-config.outputs.aml_workspace }}     
-        parameters-file:  mlops/azureml/train/pipeline.yml
-        job-name: test
-      secrets:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+        id-token: write
+      steps:
+        - name: checkout
+          uses: actions/checkout@v4
+        - name: Az CLI login
+          uses: azure/login@v2
+          with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        - name: Install Azure ML extension
+          run: |
+            az extension add -n ml -y
+            az extension update -n ml
+        - name: Run and monitor pipeline
+          env:
+            AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+            AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+            AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            RESOURCE_GROUP: ${{ needs.get-config.outputs.resource_group }}
+            WORKSPACE_NAME: ${{ needs.get-config.outputs.aml_workspace }}
+            PARAMETERS_FILE: mlops/azureml/train/pipeline.yml
+          run: |
+            set -euo pipefail
+
+            refresh_login() {
+              local token
+              token=$(curl --fail --silent --show-error \
+                -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api://AzureADTokenExchange" \
+                | jq -er '.value')
+              az account clear
+              az login --service-principal \
+                --username "$AZURE_CLIENT_ID" \
+                --tenant "$AZURE_TENANT_ID" \
+                --federated-token "$token" \
+                --allow-no-subscriptions --output none
+              az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+            }
+
+            last_login=$(date +%s)
+            run_id=$(az ml job create \
+              --file "$GITHUB_WORKSPACE/$PARAMETERS_FILE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --workspace-name "$WORKSPACE_NAME" \
+              --query name -o tsv)
+            if [[ -z "$run_id" ]]; then
+              echo "Job creation failed"
+              exit 3
+            fi
+            echo "Monitoring Azure ML job $run_id"
+
+            status=$(az ml job show -n "$run_id" \
+              --resource-group "$RESOURCE_GROUP" \
+              --workspace-name "$WORKSPACE_NAME" \
+              --query status -o tsv)
+            if [[ -z "$status" ]]; then
+              echo "Status query failed"
+              exit 4
+            fi
+
+            while [[ "$status" =~ ^(NotStarted|Queued|Starting|Preparing|Running|Finalizing|CancelRequested)$ ]]; do
+              sleep 15
+              now=$(date +%s)
+              if (( now - last_login >= 2700 )); then
+                refresh_login
+                last_login=$now
+              fi
+              status=$(az ml job show -n "$run_id" \
+                --resource-group "$RESOURCE_GROUP" \
+                --workspace-name "$WORKSPACE_NAME" \
+                --query status -o tsv)
+              echo "$status"
+            done
+
+            if [[ "$status" != "Completed" ]]; then
+              echo "Training Job failed or canceled"
+              exit 3
+            fi
